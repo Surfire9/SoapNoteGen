@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pain Mapper">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f6e56">
+<title>Pain Mapper — Medspa Medical Massage</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22Pain%20Mapper%22,%22short_name%22:%22Pain%20Mapper%22,%22display%22:%22standalone%22,%22start_url%22:%22.%22,%22background_color%22:%22%23f8f7f5%22,%22theme_color%22:%22%230f6e56%22}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --green:#0f6e56;--green-bg:#e1f5ee;--green-light:#9fe1cb;
+  --blue:#185fa5;--blue-bg:#e6f1fb;--blue-light:#b5d4f4;
+  --amber:#854f0b;--amber-bg:#faeeda;
+  --red:#a32d2d;--red-bg:#fcebeb;
+  --lime:#3b6d11;--lime-bg:#eaf3de;
+  --gray:#888780;--border:#e0ddd6;--bg:#f8f7f5;--card:#fff;--text:#1a1a18;--muted:#888780;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ── App shell ── */
+#appbar{background:var(--green);color:#fff;padding:env(safe-area-inset-top,12px) 16px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+#appbar h1{font-size:16px;font-weight:600;flex:1;}
+#appbar .sub{font-size:11px;opacity:.75;white-space:nowrap;}
+
+/* ── Two-panel layout ── */
+#main{display:flex;flex:1;overflow:hidden;}
+
+/* left: body diagram */
+#lp{width:160px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--border);padding:10px 8px;background:#fff;}
+@media(max-width:420px){#lp{width:140px;}}
+
+/* right: SOAP panel */
+#rp{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch;}
+
+/* View toggle */
+.vtb{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;}
+.vtb button{flex:1;font-size:12px;padding:5px 0;background:transparent;border:none;color:var(--muted);cursor:pointer;font-weight:500;}
+.vtb button.act{background:var(--green);color:#fff;}
+
+/* Clear */
+#btn-clear{display:block;width:100%;font-size:11px;padding:4px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;margin-bottom:8px;text-align:center;}
+#btn-clear:active{background:var(--bg);}
+
+/* SVG regions */
+.rg{cursor:pointer;stroke-width:1.5;transition:fill .12s,stroke .12s;fill:#f0efe8;stroke:#ccc;}
+.rg:hover,.rg:active{fill:var(--blue-light);stroke:var(--blue);}
+.rg.sel{fill:var(--green-light);stroke:var(--green);}
+
+/* Orientation label */
+.ori{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px;}
+
+/* Hover label */
+#hlbl{text-align:center;font-size:10px;color:var(--muted);font-style:italic;min-height:14px;margin-top:3px;}
+
+/* Empty state */
+#empty{padding:24px 8px;text-align:center;}
+#empty h2{font-size:15px;font-weight:500;margin-bottom:8px;}
+#empty p{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* Region tags */
+.tagrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;}
+.stag{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--green-bg);color:var(--green);cursor:pointer;border:1.5px solid transparent;font-weight:500;}
+.stag.foc{border-color:var(--green);}
+
+/* Info card */
+.hcard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;}
+.hcard h3{font-size:14px;font-weight:600;margin-bottom:2px;}
+.hcard .desc{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+.icd{display:inline-block;font-size:11px;font-family:'Courier New',monospace;padding:2px 8px;margin:2px 2px 2px 0;background:var(--blue-bg);color:var(--blue);border-radius:5px;font-weight:600;}
+
+/* Section label */
+.slbl{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:6px;vertical-align:middle;}
+.sl-s{background:var(--blue-bg);color:var(--blue);}
+.sl-o{background:var(--amber-bg);color:var(--amber);}
+.sl-a{background:var(--red-bg);color:var(--red);}
+.sl-p{background:var(--lime-bg);color:var(--lime);}
+
+/* SOAP cards */
+.scard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;}
+.srow{font-size:13px;line-height:2.4;color:#333;}
+
+/* Interactive pills */
+.pl{display:inline-flex;align-items:center;font-size:12px;padding:4px 10px;margin:2px 2px;border-radius:20px;background:var(--bg);color:var(--muted);cursor:pointer;border:1px solid var(--border);white-space:nowrap;transition:all .12s;vertical-align:middle;}
+.pl:active,.pl:hover{border-color:#888;}
+.pl.on{background:var(--green-light);color:#085041;border-color:var(--green);font-weight:600;}
+
+/* Fill-in inputs */
+.fi{display:inline-block;font-size:12px;font-family:'Courier New',monospace;border:none;border-bottom:2px solid var(--border);background:transparent;color:var(--text);padding:0 2px;outline:none;text-align:center;vertical-align:middle;min-width:36px;}
+.fi:focus{border-bottom-color:var(--blue);}
+.fi.num{width:32px;}
+.fihint{font-size:10px;color:var(--muted);vertical-align:middle;}
+
+/* Copy button */
+.cpbtn{display:block;width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin:4px 0 calc(env(safe-area-inset-bottom,16px) + 8px);letter-spacing:.02em;}
+.cpbtn.done{background:#0a4d3a;}
+.cpbtn:active{opacity:.85;}
+
+/* hint text */
+.hint{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+
+/* install banner */
+#install-tip{background:var(--green-bg);border:1px solid var(--green-light);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--green);line-height:1.5;display:none;}
+#install-tip strong{display:block;margin-bottom:2px;}
+</style>
+</head>
+<body>
+
+<div id="appbar">
+  <div>
+    <h1>Pain Mapper</h1>
+    <div class="sub">Medspa Medical Massage by Amanda</div>
+  </div>
+</div>
+
+<div id="main">
+
+  <!-- LEFT: diagram -->
+  <div id="lp">
+    <div class="vtb">
+      <button class="act" id="btn-front">Front</button>
+      <button id="btn-back">Back</button>
+    </div>
+    <button id="btn-clear">Clear all</button>
+    <div class="ori"><span>← Pt. R</span><span>Pt. L →</span></div>
+    <svg viewBox="0 0 200 445" style="width:100%;display:block;" id="bsvg">
+      <g id="gf">
+        <circle class="rg" data-id="head" cx="100" cy="36" r="27"/>
+        <rect class="rg" data-id="neck" x="90" y="62" width="20" height="17" rx="4"/>
+        <ellipse class="rg" data-id="left-shoulder" cx="64" cy="90" rx="20" ry="13"/>
+        <ellipse class="rg" data-id="right-shoulder" cx="136" cy="90" rx="20" ry="13"/>
+        <rect class="rg" data-id="chest" x="79" y="96" width="42" height="49" rx="3"/>
+        <rect class="rg" data-id="abdomen" x="80" y="144" width="40" height="46" rx="3"/>
+        <rect class="rg" data-id="left-upper-arm" x="38" y="96" width="20" height="56" rx="7"/>
+        <rect class="rg" data-id="right-upper-arm" x="142" y="96" width="20" height="56" rx="7"/>
+        <ellipse class="rg" data-id="left-elbow" cx="48" cy="163" rx="12" ry="9"/>
+        <ellipse class="rg" data-id="right-elbow" cx="152" cy="163" rx="12" ry="9"/>
+        <rect class="rg" data-id="left-forearm" x="38" y="171" width="20" height="48" rx="7"/>
+        <rect class="rg" data-id="right-forearm" x="142" y="171" width="20" height="48" rx="7"/>
+        <rect class="rg" data-id="left-wrist" x="34" y="218" width="26" height="40" rx="7"/>
+        <rect class="rg" data-id="right-wrist" x="140" y="218" width="26" height="40" rx="7"/>
+        <rect class="rg" data-id="left-hip" x="80" y="188" width="17" height="36" rx="3"/>
+        <rect class="rg" data-id="right-hip" x="103" y="188" width="17" height="36" rx="3"/>
+        <rect class="rg" data-id="left-thigh" x="81" y="222" width="16" height="70" rx="5"/>
+        <rect class="rg" data-id="right-thigh" x="103" y="222" width="16" height="70" rx="5"/>
+        <ellipse class="rg" data-id="left-knee" cx="89" cy="301" rx="11" ry="9"/>
+        <ellipse class="rg" data-id="right-knee" cx="111" cy="301" rx="11" ry="9"/>
+        <rect class="rg" data-id="left-calf" x="82" y="309" width="14" height="61" rx="5"/>
+        <rect class="rg" data-id="right-calf" x="104" y="309" width="14" height="61" rx="5"/>
+        <rect class="rg" data-id="left-ankle" x="77" y="368" width="21" height="32" rx="5"/>
+        <rect class="rg" data-id="right-ankle" x="102" y="368" width="21" height="32" rx="5"/>
+      </g>
+      <g id="gb" style="display:none">
+        <circle class="rg" data-id="head" cx="100" cy="36" r="27"/>
+        <rect class="rg" data-id="neck" x="90" y="62" width="20" height="17" rx="4"/>
+        <ellipse class="rg" data-id="left-shoulder" cx="64" cy="90" rx="20" ry="13"/>
+        <ellipse class="rg" data-id="right-shoulder" cx="136" cy="90" rx="20" ry="13"/>
+        <rect class="rg" data-id="upper-back" x="79" y="96" width="42" height="49" rx="3"/>
+        <rect class="rg" data-id="lower-back" x="80" y="144" width="40" height="46" rx="3"/>
+        <rect class="rg" data-id="sacrum" x="79" y="188" width="42" height="36" rx="3"/>
+        <rect class="rg" data-id="left-upper-arm" x="38" y="96" width="20" height="56" rx="7"/>
+        <rect class="rg" data-id="right-upper-arm" x="142" y="96" width="20" height="56" rx="7"/>
+        <ellipse class="rg" data-id="left-elbow" cx="48" cy="163" rx="12" ry="9"/>
+        <ellipse class="rg" data-id="right-elbow" cx="152" cy="163" rx="12" ry="9"/>
+        <rect class="rg" data-id="left-forearm" x="38" y="171" width="20" height="48" rx="7"/>
+        <rect class="rg" data-id="right-forearm" x="142" y="171" width="20" height="48" rx="7"/>
+        <rect class="rg" data-id="left-wrist" x="34" y="218" width="26" height="40" rx="7"/>
+        <rect class="rg" data-id="right-wrist" x="140" y="218" width="26" height="40" rx="7"/>
+        <rect class="rg" data-id="left-thigh" x="81" y="222" width="16" height="70" rx="5"/>
+        <rect class="rg" data-id="right-thigh" x="103" y="222" width="16" height="70" rx="5"/>
+        <ellipse class="rg" data-id="left-knee" cx="89" cy="301" rx="11" ry="9"/>
+        <ellipse class="rg" data-id="right-knee" cx="111" cy="301" rx="11" ry="9"/>
+        <rect class="rg" data-id="left-calf" x="82" y="309" width="14" height="61" rx="5"/>
+        <rect class="rg" data-id="right-calf" x="104" y="309" width="14" height="61" rx="5"/>
+        <rect class="rg" data-id="left-ankle" x="77" y="368" width="21" height="32" rx="5"/>
+        <rect class="rg" data-id="right-ankle" x="102" y="368" width="21" height="32" rx="5"/>
+      </g>
+      <text id="viewlbl" x="100" y="438" text-anchor="middle" style="font-size:9px;fill:#b4b2a9;letter-spacing:.08em;">FRONT</text>
+    </svg>
+    <div id="hlbl"></div>
+  </div>
+
+  <!-- RIGHT: SOAP panel -->
+  <div id="rp">
+    <div id="install-tip">
+      <strong>Install as app</strong>
+      Tap the Share button in Safari, then "Add to Home Screen" to use offline anytime.
+    </div>
+    <div id="empty">
+      <h2>Tap a body region</h2>
+      <p>Select an area on the diagram to generate ICD-10 codes and a SOAP note. Tap the colored pills to fill in choices, then copy the completed note.</p>
+    </div>
+    <div id="detail" style="display:none;"></div>
+  </div>
+
+</div>
+
+<script>
+const D={
+'head':{label:'Head / Cranium',codes:['R51.9','G44.309','M79.81'],desc:'Cranial vault, scalp, temporalis, suboccipital musculature',s:'Patient reports [throbbing / pressure / sharp / dull] pain in the head. Onset: [acute / gradual / chronic]. Frequency: [constant / intermittent]. Aggravating: [stress / light / sound / neck position]. Relieving: [rest / dark room / medication / heat]. Pain scale: __/10.',o:'Tenderness: [scalp / temporalis / suboccipitals / frontalis / SCM]. Cervical AROM: Flex [__°] Ext [__°] L-rot [__°] R-rot [__°] — [WNL / restricted]. Posture: [forward head noted / WNL]. TrPs: [suboccipitals / SCM / temporalis / upper trap].',a:'Differential: [tension headache / cervicogenic headache / migraine / myofascial]. Contributing: [postural / stress / ergonomic]. Red flags: [none identified / refer].',p:'Massage to scalp, cranial muscles, cervical region. Suboccipital release, TrP therapy. Frequency: [1×/week / 2×/week] × [4 weeks / 6 weeks]. Re-evaluate at 4 sessions.'},
+'neck':{label:'Neck / Cervical Spine',codes:['M54.2','M54.12','M53.1'],desc:'C1–C7 — SCM, scalenes, cervical paraspinals, levator scapulae',s:'Patient presents with [pain / stiffness / aching] in the cervical region. Quality: [aching / stabbing / burning]. UE radiation: [Y/N]. Onset: [gradual / acute / injury-related]. Aggravated by: [prolonged sitting / driving / screen use]. Pain scale: __/10.',o:'AROM: Flex [__°] Ext [__°] L-rot [__°] R-rot [__°] L-LF [__°] R-LF [__°]. Tenderness: paraspinals [Y/N], SCM [Y/N], scalenes [Y/N], levator [Y/N]. Forward head: [present / absent]. Neuro: [intact / altered].',a:'Cervicalgia (M54.2) with myofascial dysfunction. Radiculopathy: [suspected / ruled out]. Torticollis: [present / absent]. Contributing: [postural / ergonomic / repetitive motion].',p:'Massage: paraspinals, SCM, scalenes, levator, upper trap. Postural education. Heat pre-treatment. Frequency: [1×/week / 2×/week] × [4 weeks / 6 weeks].'},
+'left-shoulder':{label:'Left Shoulder',codes:['M25.512','M75.102','M79.622'],desc:'L glenohumeral — rotator cuff, deltoid, bicipital groove, periscapular',s:'L shoulder pain described as [aching / sharp / burning / catching]. Onset: [gradual / acute / post-activity]. Aggravating: [overhead / lifting / ADLs]. Night pain: [Y/N]. Pain scale: __/10.',o:'L shoulder AROM: Flex [__°] Abd [__°] IR [__°] ER [__°]. Tenderness: supraspinatus [Y/N], bicipital groove [Y/N], deltoid [Y/N], AC joint [Y/N]. Neer [+/-], Hawkins [+/-]. Dyskinesis: [Y/N].',a:'L shoulder pain (M25.512). Differential: [rotator cuff tendinopathy / impingement / bicipital tendinitis / myofascial]. Tear: [suspected / ruled out].',p:'Massage to L rotator cuff, deltoid, pec minor, periscapular. TrP release. Stretching: posterior capsule, pec minor. Re-evaluate in [2 sessions / 4 sessions].'},
+'right-shoulder':{label:'Right Shoulder',codes:['M25.511','M75.101','M79.621'],desc:'R glenohumeral — rotator cuff, deltoid, bicipital groove, periscapular',s:'R shoulder pain described as [aching / sharp / burning / catching]. Onset: [gradual / acute / post-activity]. Aggravating: [overhead / lifting / ADLs]. Night pain: [Y/N]. Pain scale: __/10.',o:'R shoulder AROM: Flex [__°] Abd [__°] IR [__°] ER [__°]. Tenderness: supraspinatus [Y/N], bicipital groove [Y/N], deltoid [Y/N], AC joint [Y/N]. Neer [+/-], Hawkins [+/-]. Dyskinesis: [Y/N].',a:'R shoulder pain (M25.511). Differential: [rotator cuff tendinopathy / impingement / bicipital tendinitis / myofascial]. Tear: [suspected / ruled out].',p:'Massage to R rotator cuff, deltoid, pec minor, periscapular. TrP release. Stretching: posterior capsule, pec minor. Re-evaluate in [2 sessions / 4 sessions].'},
+'chest':{label:'Chest / Pectoral Region',codes:['R07.9','M94.0','M79.3'],desc:'Anterior thorax — pec major/minor, intercostals, sternum, costochondral',s:'Chest/pectoral [tightness / soreness / aching / sharp pain]. NOTE: Cardiac etiology cleared by physician. Worsened by: [arm movement / deep breathing / sustained slouch]. Pain scale: __/10.',o:'Tenderness: pec major [Y/N], pec minor [Y/N], intercostals [Y/N], costochondral [Y/N]. Anterior rounding: [present / absent]. Thoracic extension: [restricted / WNL].',a:'Chest wall pain. Differential: [costochondritis / pectoral strain / intercostal myofascial / non-cardiac]. PRECAUTION: Refer if cardiac symptoms present.',p:'Massage to pec major/minor, intercostals, anterior deltoid. Myofascial release. Extension and retraction exercises. Refer to MD if cardiac symptoms arise.'},
+'abdomen':{label:'Abdomen / Abdominal Wall',codes:['R10.9','M79.3','M79.1'],desc:'Abdominal wall — rectus abdominis, obliques, transversus, iliopsoas',s:'Abdominal [pain / tightness / cramping] in [RUQ / RLQ / LUQ / LLQ / periumbilical / diffuse]. Visceral etiology cleared by physician. Aggravated by [movement / exertion / sustained posture]. Pain scale: __/10.',o:'Tenderness: [RUQ / RLQ / LUQ / LLQ / periumbilical]. Pelvic tilt: [Y/N]. TrPs: [rectus abdominis / obliques / iliopsoas]. Iliopsoas stretch: [positive / negative].',a:'Abdominal wall myofascial pain. Differential: [muscle strain / iliopsoas hypertonicity / referred lumbar pain]. Visceral cause excluded: [Y/N].',p:'Gentle massage to abdominal wall. Myofascial release. Diaphragmatic breathing education. Iliopsoas stretching. PRECAUTION: Refer if visceral symptoms develop.'},
+'upper-back':{label:'Upper Back / Thoracic Spine',codes:['M54.6','M79.3','M54.02'],desc:'T1–T8 — rhomboids, mid-trap, thoracic paraspinals, erector spinae',s:'Upper/mid-back [aching / tightness / burning / sharp] pain. Location: [interscapular / paravertebral / diffuse]. Aggravated by: [prolonged sitting / forward posture / screen use]. Pain scale: __/10.',o:'Thoracic rotation: L [__°] R [__°]. Tenderness: paraspinals [Y/N], rhomboids [Y/N], mid-trap [Y/N]. Kyphosis: [present / absent]. Scapular winging: [Y/N].',a:'Thoracic pain (M54.6) with myofascial dysfunction. Differential: [postural strain / facet irritation / rhomboid tension / thoracic outlet].',p:'Deep tissue massage to paraspinals, rhomboids, mid-trap. Thoracic mobility. Extension and retraction strengthening. Follow-up [4 sessions / 6 sessions].'},
+'lower-back':{label:'Lower Back / Lumbar Spine',codes:['M54.50','M54.4','M51.16'],desc:'L1–L5 — QL, erector spinae, multifidus, lumbar paraspinals',s:'LBP described as [aching / sharp / stiff / throbbing]. Onset: [gradual / acute / injury-related]. Aggravated by: [prolonged sitting / standing / bending / lifting]. Leg radiation: [Y/N]. Pain scale: __/10.',o:'AROM: Flex [__°] Ext [__°] L-LF [__°] R-LF [__°]. Tenderness: paraspinals [Y/N], QL [Y/N], SI region [Y/N]. Posture: [hyperlordosis / flat back / WNL]. SLR: [+/-]. Red flags: [none / present — refer].',a:'LBP (M54.50). Differential: [muscle strain / QL hypertonicity / facet dysfunction / disc-related]. Sciatica: [suspected / ruled out]. Red flags: [none / refer].',p:'Massage to QL, lumbar paraspinals, gluteals, piriformis. Stabilization education. Heat pre/ice post. Frequency: [1×/week / 2×/week] × [4 weeks / 6 weeks].'},
+'sacrum':{label:'Sacrum / Gluteal Region',codes:['M53.3','G57.00','M54.30'],desc:'SIJ, piriformis, gluteus max/med/min, coccyx',s:'Sacral/gluteal [pain / aching / tightness]. Location: [SIJ / piriformis / coccyx / diffuse gluteal]. Posterior thigh radiation: [Y/N]. Aggravated by: [sitting / transitions / prolonged walking]. AM stiffness: [Y/N]. Pain scale: __/10.',o:'Tenderness: PSIS [Y/N], SIJ line [Y/N], piriformis [Y/N], glut med [Y/N]. FABER [+/-], Gaenslen\'s [+/-], FAIR [+/-]. Hip IR: [restricted / WNL].',a:'Sacral/gluteal pain (M53.3). Differential: [SIJ dysfunction / piriformis syndrome / gluteal tendinopathy / coccydynia / lumbar referred]. Sciatic: [suspected / ruled out].',p:'Massage to piriformis, gluteal complex, sacral region. Stretching. Pelvic stabilization. Refer if radiculopathy confirmed.'},
+'left-hip':{label:'Left Hip',codes:['M25.552','M70.62','M76.12'],desc:'L hip — greater trochanter, TFL, iliopsoas, gluteal musculature',s:'L hip [anterior / lateral / posterior] pain. Aggravated by: [walking / stairs / sitting / lying on side]. Groin pain: [Y/N]. Clicking: [Y/N]. Pain scale: __/10.',o:'L hip AROM: Flex [__°] Ext [__°] IR [__°] ER [__°] Abd [__°]. Tenderness: trochanter [Y/N], TFL [Y/N], iliopsoas [Y/N], glut med [Y/N]. Thomas [+/-], FABER [+/-], FADIR [+/-], Trendelenburg [+/-].',a:'L hip pain (M25.552). Differential: [trochanteric bursitis / IT band syndrome / iliopsoas strain / glut med tendinopathy]. FAI: [suspected / ruled out].',p:'Massage to L hip flexors, TFL, gluteals, piriformis. IT band release. Hip strengthening. Refer for imaging if joint pathology suspected.'},
+'right-hip':{label:'Right Hip',codes:['M25.551','M70.61','M76.11'],desc:'R hip — greater trochanter, TFL, iliopsoas, gluteal musculature',s:'R hip [anterior / lateral / posterior] pain. Aggravated by: [walking / stairs / sitting / lying on side]. Groin pain: [Y/N]. Clicking: [Y/N]. Pain scale: __/10.',o:'R hip AROM: Flex [__°] Ext [__°] IR [__°] ER [__°] Abd [__°]. Tenderness: trochanter [Y/N], TFL [Y/N], iliopsoas [Y/N], glut med [Y/N]. Thomas [+/-], FABER [+/-], FADIR [+/-], Trendelenburg [+/-].',a:'R hip pain (M25.551). Differential: [trochanteric bursitis / IT band syndrome / iliopsoas strain / glut med tendinopathy]. FAI: [suspected / ruled out].',p:'Massage to R hip flexors, TFL, gluteals, piriformis. IT band release. Hip strengthening. Refer for imaging if joint pathology suspected.'},
+'left-upper-arm':{label:'Left Upper Arm',codes:['M79.622','M75.22','M65.222'],desc:'L upper arm — biceps, triceps, deltoid, brachialis',s:'L upper arm [anterior / posterior / lateral] pain described as [aching / sharp / burning]. Onset: [acute / gradual / post-exercise]. Functional limitations: [Y/N]. Pain scale: __/10.',o:'Tenderness: L biceps [Y/N], triceps [Y/N], deltoid [Y/N]. Resisted flex: [painful / weak / WNL]. Speed\'s: [+/-]. Bicipital groove: [tender / WNL].',a:'L upper arm pain (M79.622). Differential: [biceps tendinopathy / tenosynovitis / deltoid strain / triceps strain].',p:'Massage to L biceps, triceps, deltoid. TrP release. Eccentric strengthening. Activity modification.'},
+'right-upper-arm':{label:'Right Upper Arm',codes:['M79.621','M75.21','M65.221'],desc:'R upper arm — biceps, triceps, deltoid, brachialis',s:'R upper arm [anterior / posterior / lateral] pain described as [aching / sharp / burning]. Onset: [acute / gradual / post-exercise]. Functional limitations: [Y/N]. Pain scale: __/10.',o:'Tenderness: R biceps [Y/N], triceps [Y/N], deltoid [Y/N]. Resisted flex: [painful / weak / WNL]. Speed\'s: [+/-]. Bicipital groove: [tender / WNL].',a:'R upper arm pain (M79.621). Differential: [biceps tendinopathy / tenosynovitis / deltoid strain / triceps strain].',p:'Massage to R biceps, triceps, deltoid. TrP release. Eccentric strengthening. Activity modification.'},
+'left-elbow':{label:'Left Elbow',codes:['M25.322','M77.02','M77.12'],desc:'L elbow — lateral/medial epicondyle, extensor/flexor origins, cubital fossa',s:'L elbow pain at [lateral / medial / posterior] aspect. Quality: [aching / sharp / burning]. Associated with [gripping / wrist extension / wrist flexion]. Onset: [gradual / acute / overuse]. Pain scale: __/10.',o:'Tenderness: lateral epicondyle [Y/N], medial epicondyle [Y/N], olecranon [Y/N]. Cozen\'s [+/-], Mill\'s [+/-]. Tinel\'s cubital [+/-]. Grip: L [__] R [__] lbs.',a:'L elbow pain (M25.322). Differential: [lateral epicondylitis / medial epicondylitis / cubital tunnel / tendinopathy].',p:'Massage to L forearm flexors and extensors. Cross-fiber friction at insertions. Eccentric strengthening. Re-evaluate in [2 sessions / 4 sessions].'},
+'right-elbow':{label:'Right Elbow',codes:['M25.321','M77.01','M77.11'],desc:'R elbow — lateral/medial epicondyle, extensor/flexor origins, cubital fossa',s:'R elbow pain at [lateral / medial / posterior] aspect. Quality: [aching / sharp / burning]. Associated with [gripping / wrist extension / wrist flexion]. Onset: [gradual / acute / overuse]. Pain scale: __/10.',o:'Tenderness: lateral epicondyle [Y/N], medial epicondyle [Y/N], olecranon [Y/N]. Cozen\'s [+/-], Mill\'s [+/-]. Tinel\'s cubital [+/-]. Grip: L [__] R [__] lbs.',a:'R elbow pain (M25.321). Differential: [lateral epicondylitis / medial epicondylitis / cubital tunnel / tendinopathy].',p:'Massage to R forearm flexors and extensors. Cross-fiber friction at insertions. Eccentric strengthening. Re-evaluate in [2 sessions / 4 sessions].'},
+'left-forearm':{label:'Left Forearm',codes:['M79.622','M77.02','G56.12'],desc:'L forearm — flexor/extensor compartments, pronator teres, supinator',s:'L forearm [pain / tightness / fatigue] in [flexor / extensor / radial / ulnar] compartment. Aggravated by [gripping / typing / repetitive motion]. Onset: [gradual / acute]. Pain scale: __/10.',o:'Tenderness: L flexors [Y/N], extensors [Y/N], pronator teres [Y/N]. ROM: flex [__°] ext [__°]. Pro/supination: [painful / WNL]. Median nerve: [positive / negative].',a:'L forearm pain/repetitive strain. Differential: [flexor strain / extensor strain / pronator syndrome / radial tunnel].',p:'Massage to L forearm flexors and extensors. Nerve mobilization if indicated. Stretching. Ergonomic assessment.'},
+'right-forearm':{label:'Right Forearm',codes:['M79.621','M77.01','G56.11'],desc:'R forearm — flexor/extensor compartments, pronator teres, supinator',s:'R forearm [pain / tightness / fatigue] in [flexor / extensor / radial / ulnar] compartment. Aggravated by [gripping / typing / repetitive motion]. Onset: [gradual / acute]. Pain scale: __/10.',o:'Tenderness: R flexors [Y/N], extensors [Y/N], pronator teres [Y/N]. ROM: flex [__°] ext [__°]. Pro/supination: [painful / WNL]. Median nerve: [positive / negative].',a:'R forearm pain/repetitive strain. Differential: [flexor strain / extensor strain / pronator syndrome / radial tunnel].',p:'Massage to R forearm flexors and extensors. Nerve mobilization if indicated. Stretching. Ergonomic assessment.'},
+'left-wrist':{label:'Left Wrist / Hand',codes:['M25.332','G56.02','M65.312'],desc:'L wrist and hand — carpal tunnel, flexor/extensor tendons, intrinsic musculature',s:'L wrist/hand [pain / numbness / tingling / weakness]. [Constant / intermittent], [day / night]. Aggravated by [typing / gripping / sustained position]. Nocturnal paresthesias: [Y/N]. Pain scale: __/10.',o:'L wrist AROM: flex [__°] ext [__°] RD [__°] UD [__°]. Tenderness: carpal tunnel [Y/N], radial styloid [Y/N], thenar [Y/N]. Phalen\'s [+/-], Tinel\'s [+/-], Finkelstein\'s [+/-]. Grip: L [__] R [__] lbs.',a:'L wrist/hand pain (M25.332). Differential: [carpal tunnel syndrome / De Quervain\'s / TFCC injury / intrinsic overuse]. NCS/EMG: [indicated / not indicated].',p:'Massage to L forearm, thenar/hypothenar, intrinsic hand. Nerve mobilization. Night splinting if CTS suspected. Ergonomic education.'},
+'right-wrist':{label:'Right Wrist / Hand',codes:['M25.331','G56.01','M65.311'],desc:'R wrist and hand — carpal tunnel, flexor/extensor tendons, intrinsic musculature',s:'R wrist/hand [pain / numbness / tingling / weakness]. [Constant / intermittent], [day / night]. Aggravated by [typing / gripping / sustained position]. Nocturnal paresthesias: [Y/N]. Pain scale: __/10.',o:'R wrist AROM: flex [__°] ext [__°] RD [__°] UD [__°]. Tenderness: carpal tunnel [Y/N], radial styloid [Y/N], thenar [Y/N]. Phalen\'s [+/-], Tinel\'s [+/-], Finkelstein\'s [+/-]. Grip: L [__] R [__] lbs.',a:'R wrist/hand pain (M25.331). Differential: [carpal tunnel syndrome / De Quervain\'s / TFCC injury / intrinsic overuse]. NCS/EMG: [indicated / not indicated].',p:'Massage to R forearm, thenar/hypothenar, intrinsic hand. Nerve mobilization. Night splinting if CTS suspected. Ergonomic education.'},
+'left-thigh':{label:'Left Thigh',codes:['M79.652','M76.22','M65.852'],desc:'L thigh — quadriceps, hamstrings, adductors, TFL, IT band',s:'L thigh [anterior / posterior / medial / lateral] pain described as [aching / sharp / tightness / cramping]. Onset: [acute / gradual / post-exercise]. Aggravated by [walking / running / stairs / squatting]. Pain scale: __/10.',o:'Tenderness: L quad [Y/N], hamstrings [Y/N], adductors [Y/N], IT band [Y/N]. Thomas: [positive / negative]. Hamstring 90/90: [restricted / WNL]. Gait: [deviations / WNL].',a:'L thigh pain (M79.652). Differential: [quad/hamstring strain / adductor tendinopathy / IT band syndrome / meralgia paresthetica].',p:'Deep tissue massage to L quad, hamstrings, adductors. IT band release. Eccentric strengthening. Gradual return to activity.'},
+'right-thigh':{label:'Right Thigh',codes:['M79.651','M76.21','M65.851'],desc:'R thigh — quadriceps, hamstrings, adductors, TFL, IT band',s:'R thigh [anterior / posterior / medial / lateral] pain described as [aching / sharp / tightness / cramping]. Onset: [acute / gradual / post-exercise]. Aggravated by [walking / running / stairs / squatting]. Pain scale: __/10.',o:'Tenderness: R quad [Y/N], hamstrings [Y/N], adductors [Y/N], IT band [Y/N]. Thomas: [positive / negative]. Hamstring 90/90: [restricted / WNL]. Gait: [deviations / WNL].',a:'R thigh pain (M79.651). Differential: [quad/hamstring strain / adductor tendinopathy / IT band syndrome / meralgia paresthetica].',p:'Deep tissue massage to R quad, hamstrings, adductors. IT band release. Eccentric strengthening. Gradual return to activity.'},
+'left-knee':{label:'Left Knee',codes:['M25.362','M76.42','M22.2X2'],desc:'L knee — patella, patellar tendon, collateral ligaments, periarticular',s:'L knee [anterior / medial / lateral / posterior] pain. Swelling: [Y/N]. Clicking/locking: [Y/N]. Onset: [acute / gradual]. Aggravated by [stairs / squatting / running / prolonged sitting]. Pain scale: __/10.',o:'Effusion: [Y/N]. Tenderness: patella [Y/N], patellar tendon [Y/N], medial line [Y/N], lateral line [Y/N], pes anserine [Y/N]. Lachman [+/-], McMurray [+/-], patellar grind [+/-].',a:'L knee pain (M25.362). Differential: [patellofemoral syndrome / IT band / meniscus / MCL sprain / pes anserine bursitis]. Tear: [suspected — refer / ruled out].',p:'Massage to L quad, hamstrings, IT band, gastroc. Patellar mobilization if PF involvement. VMO strengthening. Ice post-treatment. Refer for imaging if structural injury suspected.'},
+'right-knee':{label:'Right Knee',codes:['M25.361','M76.41','M22.2X1'],desc:'R knee — patella, patellar tendon, collateral ligaments, periarticular',s:'R knee [anterior / medial / lateral / posterior] pain. Swelling: [Y/N]. Clicking/locking: [Y/N]. Onset: [acute / gradual]. Aggravated by [stairs / squatting / running / prolonged sitting]. Pain scale: __/10.',o:'Effusion: [Y/N]. Tenderness: patella [Y/N], patellar tendon [Y/N], medial line [Y/N], lateral line [Y/N], pes anserine [Y/N]. Lachman [+/-], McMurray [+/-], patellar grind [+/-].',a:'R knee pain (M25.361). Differential: [patellofemoral syndrome / IT band / meniscus / MCL sprain / pes anserine bursitis]. Tear: [suspected — refer / ruled out].',p:'Massage to R quad, hamstrings, IT band, gastroc. Patellar mobilization if PF involvement. VMO strengthening. Ice post-treatment. Refer for imaging if structural injury suspected.'},
+'left-calf':{label:'Left Calf / Lower Leg',codes:['M79.672','M76.62','G57.32'],desc:'L lower leg — gastrocnemius, soleus, tibialis anterior, peroneals',s:'L calf [posterior / anterior / lateral] pain described as [cramping / aching / sharp / tightness]. Aggravated by [walking / running / prolonged standing]. DVT screened: [Y/N]. Pain scale: __/10.',o:'Tenderness: L gastroc [Y/N], soleus [Y/N], tibialis anterior [Y/N], peroneals [Y/N], tibial border [Y/N]. Dorsiflexion: [__°]. Silfverskiöld [+/-]. DVT screen: [negative / positive — refer].',a:'L lower leg pain (M79.672). Differential: [gastroc/soleus strain / shin splints / peroneal tendinopathy / compartment syndrome / peroneal entrapment].',p:'Massage to L gastroc, soleus, tib anterior, peroneals. Calf stretching. Ankle strengthening. Load modification. REFER IMMEDIATELY if vascular symptoms.'},
+'right-calf':{label:'Right Calf / Lower Leg',codes:['M79.671','M76.61','G57.31'],desc:'R lower leg — gastrocnemius, soleus, tibialis anterior, peroneals',s:'R calf [posterior / anterior / lateral] pain described as [cramping / aching / sharp / tightness]. Aggravated by [walking / running / prolonged standing]. DVT screened: [Y/N]. Pain scale: __/10.',o:'Tenderness: R gastroc [Y/N], soleus [Y/N], tibialis anterior [Y/N], peroneals [Y/N], tibial border [Y/N]. Dorsiflexion: [__°]. Silfverskiöld [+/-]. DVT screen: [negative / positive — refer].',a:'R lower leg pain (M79.671). Differential: [gastroc/soleus strain / shin splints / peroneal tendinopathy / compartment syndrome / peroneal entrapment].',p:'Massage to R gastroc, soleus, tib anterior, peroneals. Calf stretching. Ankle strengthening. Load modification. REFER IMMEDIATELY if vascular symptoms.'},
+'left-ankle':{label:'Left Ankle / Foot',codes:['M25.372','M72.2','M76.82'],desc:'L ankle and foot — achilles, plantar fascia, lateral ligaments, intrinsics',s:'L [heel / plantar arch / lateral ankle / medial ankle / forefoot] pain. First-step morning pain: [Y/N]. Ankle instability history: [Y/N]. Pain scale: __/10.',o:'Tenderness: L plantar fascia [Y/N], achilles [Y/N], lateral ligaments [Y/N], peroneals [Y/N]. Dorsiflexion: [__°]. Windlass: [+/-]. Ottawa applied: [Y/N].',a:'L ankle/foot pain (M25.372). Differential: [plantar fasciitis / achilles tendinopathy / lateral ankle sprain / peroneal tendinopathy / metatarsalgia].',p:'Massage to L plantar fascia, intrinsics, achilles, calf. Stretching protocol. Supportive footwear. Orthotics if indicated. Night splinting for PF. Taping for instability.'},
+'right-ankle':{label:'Right Ankle / Foot',codes:['M25.371','M72.2','M76.81'],desc:'R ankle and foot — achilles, plantar fascia, lateral ligaments, intrinsics',s:'R [heel / plantar arch / lateral ankle / medial ankle / forefoot] pain. First-step morning pain: [Y/N]. Ankle instability history: [Y/N]. Pain scale: __/10.',o:'Tenderness: R plantar fascia [Y/N], achilles [Y/N], lateral ligaments [Y/N], peroneals [Y/N]. Dorsiflexion: [__°]. Windlass: [+/-]. Ottawa applied: [Y/N].',a:'R ankle/foot pain (M25.371). Differential: [plantar fasciitis / achilles tendinopathy / lateral ankle sprain / peroneal tendinopathy / metatarsalgia].',p:'Massage to R plantar fascia, intrinsics, achilles, calf. Stretching protocol. Supportive footwear. Orthotics if indicated. Night splinting for PF. Taping for instability.'}
+};
+
+const LABELS={head:'Head / Cranium',neck:'Neck / Cervical','left-shoulder':'Left Shoulder','right-shoulder':'Right Shoulder',chest:'Chest / Pectoral',abdomen:'Abdomen','upper-back':'Upper Back','lower-back':'Lower Back',sacrum:'Sacrum / Gluteal','left-hip':'Left Hip','right-hip':'Right Hip','left-upper-arm':'Left Upper Arm','right-upper-arm':'Right Upper Arm','left-elbow':'Left Elbow','right-elbow':'Right Elbow','left-forearm':'Left Forearm','right-forearm':'Right Forearm','left-wrist':'Left Wrist / Hand','right-wrist':'Right Wrist / Hand','left-thigh':'Left Thigh','right-thigh':'Right Thigh','left-knee':'Left Knee','right-knee':'Right Knee','left-calf':'Left Calf','right-calf':'Right Calf','left-ankle':'Left Ankle / Foot','right-ankle':'Right Ankle / Foot'};
+
+let sel=[],focused=null;
+const SS={},TC={};
+
+function tok(text){
+  const tokens=[];const re=/(__\/10)|\[([^\]]*)\]/g;let last=0,m;
+  while((m=re.exec(text))!==null){
+    if(m.index>last)tokens.push({t:'text',v:text.slice(last,m.index)});
+    if(m[1]){tokens.push({t:'scale'});}
+    else{const inner=m[2];
+      if(/^_+/.test(inner))tokens.push({t:'input',hint:inner.replace(/^_+/,'')});
+      else if(inner==='Y/N')tokens.push({t:'choice',opts:['Y','N']});
+      else if(inner==='+/-')tokens.push({t:'choice',opts:['+','-']});
+      else if(inner.includes(' / '))tokens.push({t:'choice',opts:inner.split(' / ').map(s=>s.trim())});
+      else tokens.push({t:'text',v:m[0]});
+    }
+    last=m.index+m[0].length;
+  }
+  if(last<text.length)tokens.push({t:'text',v:text.slice(last)});
+  return tokens;
+}
+function gt(rid,sec){const k=rid+'__'+sec;return TC[k]||(TC[k]=tok(D[rid][sec]));}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+function renderToks(tks,rid,sec){
+  let h='<span class="srow">';
+  tks.forEach((tk,i)=>{
+    const k=rid+'__'+sec+'__'+i,sv=SS[k];
+    if(tk.t==='text')h+=esc(tk.v);
+    else if(tk.t==='choice')tk.opts.forEach(o=>{h+=`<button class="pl${sv===o?' on':''}" data-key="${esc(k)}" data-val="${esc(o)}">${esc(o)}</button>`;});
+    else if(tk.t==='scale')h+=`<input class="fi num" type="number" min="1" max="10" data-key="${esc(k)}" value="${esc(sv||'')}" placeholder="?"> / 10`;
+    else if(tk.t==='input'){const w=tk.hint&&tk.hint.length>3?60:tk.hint?44:56;h+=`<input class="fi" data-key="${esc(k)}" value="${esc(sv||'')}" placeholder="${esc(tk.hint||'—')}" style="width:${w}px">`;if(tk.hint)h+=`<span class="fihint"> ${esc(tk.hint)}</span>`;}
+  });
+  return h+'</span>';
+}
+
+function asmToks(tks,rid,sec){
+  return tks.map((tk,i)=>{
+    const sv=SS[rid+'__'+sec+'__'+i];
+    if(tk.t==='text')return tk.v;
+    if(tk.t==='choice')return sv||'['+tk.opts.join('/')+']';
+    if(tk.t==='scale')return(sv||'__')+'/10';
+    if(tk.t==='input')return(sv||'__')+(tk.hint||'');
+  }).join('');
+}
+
+const SLBLS=[['S','sl-s'],['O','sl-o'],['A','sl-a'],['P','sl-p']];
+const SKEYS=['s','o','a','p'];
+
+function renderPanel(){
+  const empty=document.getElementById('empty');
+  const detail=document.getElementById('detail');
+  if(!sel.length){empty.style.display='';detail.style.display='none';return;}
+  empty.style.display='none';detail.style.display='';
+  const fid=focused||sel[sel.length-1];
+  const d=D[fid];if(!d)return;
+  const allCodes=[...new Set(sel.flatMap(id=>D[id]?.codes||[]))];
+  const tags=sel.map(id=>`<span class="stag${id===fid?' foc':''}" onclick="setFocus('${esc(id)}')">${esc(LABELS[id]||id)}</span>`).join('');
+  const codeHTML=allCodes.map(c=>`<code class="icd">${esc(c)}</code>`).join('');
+  let soap='';
+  SKEYS.forEach((sec,i)=>{soap+=`<div class="scard"><span class="slbl ${SLBLS[i][1]}">${SLBLS[i][0]}</span>${renderToks(gt(fid,sec),fid,sec)}</div>`;});
+  detail.innerHTML=`
+    <div class="tagrow">${tags}</div>
+    <div class="hcard">
+      <h3>${esc(d.label)}</h3>
+      <div class="desc">${esc(d.desc)}</div>
+      <div>${codeHTML}</div>
+    </div>
+    <p class="hint">Tap pills to select · Type in measurement fields</p>
+    ${soap}
+    <button class="cpbtn" id="cpbtn" onclick="copySoap()">Copy completed note</button>`;
+}
+
+function copySoap(){
+  const fid=focused||sel[sel.length-1];if(!fid)return;
+  const d=D[fid];
+  const note=d.label+'\nICD-10: '+d.codes.join(' | ')+'\n\n'+SKEYS.map((s,i)=>SLBLS[i][0]+': '+asmToks(gt(fid,s),fid,s)).join('\n\n');
+  const btn=document.getElementById('cpbtn');
+  const done=()=>{if(btn){btn.textContent='Copied!';btn.classList.add('done');setTimeout(()=>{btn.textContent='Copy completed note';btn.classList.remove('done');},2500);}};
+  if(navigator.clipboard)navigator.clipboard.writeText(note).then(done).catch(()=>{fb(note);done();});
+  else{fb(note);done();}
+}
+function fb(t){const e=document.createElement('textarea');e.value=t;document.body.appendChild(e);e.select();try{document.execCommand('copy');}catch(x){}document.body.removeChild(e);}
+
+function applyStyles(){document.querySelectorAll('.rg').forEach(el=>{el.classList.toggle('sel',sel.includes(el.getAttribute('data-id')));});}
+function toggleRegion(id){const idx=sel.indexOf(id);if(idx>=0){sel.splice(idx,1);if(focused===id)focused=sel.length?sel[sel.length-1]:null;}else{sel.push(id);focused=id;}applyStyles();renderPanel();}
+function setFocus(id){focused=id;renderPanel();}
+function clearAll(){sel=[];focused=null;applyStyles();renderPanel();}
+
+let curView='front';
+function setView(v){
+  curView=v;
+  document.getElementById('gf').style.display=v==='front'?'':'none';
+  document.getElementById('gb').style.display=v==='back'?'':'none';
+  document.getElementById('viewlbl').textContent=v==='front'?'FRONT':'BACK';
+  document.getElementById('btn-front').classList.toggle('act',v==='front');
+  document.getElementById('btn-back').classList.toggle('act',v==='back');
+  applyStyles();
+}
+
+const detail=document.getElementById('detail');
+detail.addEventListener('click',e=>{
+  const btn=e.target.closest('.pl');if(!btn)return;
+  const k=btn.dataset.key,val=btn.dataset.val,wasOn=btn.classList.contains('on');
+  detail.querySelectorAll(`.pl[data-key="${k}"]`).forEach(p=>p.classList.remove('on'));
+  if(!wasOn){btn.classList.add('on');SS[k]=val;}else{delete SS[k];}
+});
+detail.addEventListener('input',e=>{const inp=e.target.closest('.fi');if(inp)SS[inp.dataset.key]=inp.value;});
+
+document.querySelectorAll('.rg').forEach(el=>{
+  el.addEventListener('click',()=>{const id=el.getAttribute('data-id');if(id)toggleRegion(id);});
+  el.addEventListener('touchstart',()=>{document.getElementById('hlbl').textContent=LABELS[el.getAttribute('data-id')]||'';},{passive:true});
+  el.addEventListener('touchend',()=>{setTimeout(()=>{document.getElementById('hlbl').textContent='';},800);},{passive:true});
+  el.addEventListener('mouseenter',()=>{document.getElementById('hlbl').textContent=LABELS[el.getAttribute('data-id')]||'';});
+  el.addEventListener('mouseleave',()=>{document.getElementById('hlbl').textContent='';});
+});
+document.getElementById('btn-front').addEventListener('click',()=>setView('front'));
+document.getElementById('btn-back').addEventListener('click',()=>setView('back'));
+document.getElementById('btn-clear').addEventListener('click',clearAll);
+
+// Show install tip on first visit on iOS
+if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!navigator.standalone){
+  document.getElementById('install-tip').style.display='block';
+}
+
+// Register inline service worker for offline use
+if('serviceWorker' in navigator){
+  const sw=`self.addEventListener('install',e=>e.waitUntil(caches.open('pm-v1').then(c=>c.add('/'))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));`;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
